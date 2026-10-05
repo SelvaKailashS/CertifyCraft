@@ -1,42 +1,27 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sliders, Users, Layers } from 'lucide-react';
-import { Navbar } from './components/Navbar';
-import { WorkflowSteps } from './components/WorkflowSteps';
-import { InspectorTab } from './components/InspectorTab';
-import { ParticipantsTab } from './components/ParticipantsTab';
-import { TemplatesTab } from './components/TemplatesTab';
+import { Moon, Sun, Layers, Image as ImageIcon, FileText } from 'lucide-react';
+import { AutomationControlPanel } from './components/AutomationControlPanel';
 import { CertificateCanvas } from './components/CertificateCanvas';
-import { CanvasFooter } from './components/CanvasFooter';
-import { QRVerifierModal } from './components/QRVerifierModal';
-import { MakeAutomationModal } from './components/MakeAutomationModal';
-import { BulkExportModal } from './components/BulkExportModal';
 import { DEMO_PARTICIPANTS } from './data/mockData';
 import { PRESET_TEMPLATES, DEFAULT_HACKATHON_ELEMENTS } from './templates/presets';
 import type { Template, Participant, CanvasElement, ColumnMapping } from './types';
-import { exportToPng, exportToPdf, exportBulkZip } from './utils/exportUtils';
+import { exportToPdf, exportToPng } from './utils/exportUtils';
 
 export function App() {
-  // Light theme by default (matches demo video)
   const [darkMode, setDarkMode] = useState(false);
 
-  // Template & Elements state
+  // Active template & elements
   const [currentTemplate, setCurrentTemplate] = useState<Template>(PRESET_TEMPLATES[0]);
   const [elements, setElements] = useState<CanvasElement[]>(
     JSON.parse(JSON.stringify(DEFAULT_HACKATHON_ELEMENTS))
   );
   const [selectedElementId, setSelectedElementId] = useState<string>('name');
 
-  // Participants & Roster state
+  // Participants roster
   const [participants, setParticipants] = useState<Participant[]>(DEMO_PARTICIPANTS);
-  const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>(
-    DEMO_PARTICIPANTS.map((p) => p.id)
-  );
   const [activeParticipant, setActiveParticipant] = useState<Participant>(DEMO_PARTICIPANTS[0]);
 
-  // Tab state: 'inspector' | 'participants' | 'templates'
-  const [activeTab, setActiveTab] = useState<'inspector' | 'participants' | 'templates'>('inspector');
-
-  // Column Mapping state
+  // Column mapping
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
     name: 'Student Name',
     college: 'College / University',
@@ -47,22 +32,9 @@ export function App() {
     email: 'Student Email',
   });
 
-  // Modals state
-  const [isVerifierOpen, setIsVerifierOpen] = useState(false);
-  const [isMakeOpen, setIsMakeOpen] = useState(false);
-  const [isBulkExportOpen, setIsBulkExportOpen] = useState(false);
-
-  // Bulk export progress
-  const [bulkProgress, setBulkProgress] = useState({
-    current: 0,
-    total: 0,
-    isExporting: false,
-    done: false,
-  });
-
   const svgCanvasRef = useRef<SVGSVGElement | null>(null);
 
-  // Synchronize dark mode class on document
+  // Sync dark mode class
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -71,292 +43,154 @@ export function App() {
     }
   }, [darkMode]);
 
-  // Handle template selection
-  const handleSelectTemplate = (template: Template) => {
-    setCurrentTemplate(template);
-    setElements(JSON.parse(JSON.stringify(template.elements)));
+  // Change template
+  const handleSelectTemplate = (tpl: Template) => {
+    setCurrentTemplate(tpl);
+    setElements(JSON.parse(JSON.stringify(tpl.elements)));
   };
 
-  // Handle custom background image upload
-  const handleUploadCustomBg = (dataUrl: string) => {
-    const customTpl: Template = {
-      id: `custom-${Date.now()}`,
-      name: 'Custom Branded Template',
-      category: 'CUSTOM',
-      description: 'Uploaded custom high-resolution certificate background.',
-      themeColor: '#0f172a',
-      accentColor: '#f59e0b',
-      bgType: 'custom-image',
-      bgImageUrl: dataUrl,
-      elements: JSON.parse(JSON.stringify(elements)),
-    };
-    setCurrentTemplate(customTpl);
-  };
-
-  // Element actions
-  const handleUpdateElement = (id: string, updates: Partial<CanvasElement>) => {
-    setElements((prev) =>
-      prev.map((el) => (el.id === id ? { ...el, ...updates } : el))
-    );
-  };
-
+  // Drag position update
   const handleUpdateElementPosition = (id: string, x: number, y: number) => {
-    setElements((prev) =>
-      prev.map((el) => (el.id === id ? { ...el, x, y } : el))
-    );
+    setElements((prev) => prev.map((el) => (el.id === id ? { ...el, x, y } : el)));
   };
 
-  const handleDeleteElement = (id: string) => {
-    if (elements.length <= 1) return;
-    const remaining = elements.filter((el) => el.id !== id);
-    setElements(remaining);
-    setSelectedElementId(remaining[0].id);
+  // Render SVG helper for automation
+  const renderCurrentSvg = async (participant: Participant): Promise<SVGSVGElement> => {
+    setActiveParticipant(participant);
+    await new Promise((r) => setTimeout(r, 40));
+    return svgCanvasRef.current as SVGSVGElement;
   };
-
-  const handleAddElement = () => {
-    const newId = `field-${Date.now()}`;
-    const newEl: CanvasElement = {
-      id: newId,
-      label: `Custom Field ${elements.length + 1}`,
-      type: 'text',
-      x: 50,
-      y: 50,
-      dataSource: 'custom',
-      staticValue: 'NEW CERTIFICATE FIELD',
-      fontFamily: 'Inter',
-      fontWeight: '600',
-      fontSize: 20,
-      textAlign: 'center',
-      textCase: 'none',
-      color: '#ffffff',
-      visible: true,
-    };
-    setElements((prev) => [...prev, newEl]);
-    setSelectedElementId(newId);
-  };
-
-  const handleResetElements = () => {
-    setElements(JSON.parse(JSON.stringify(currentTemplate.elements)));
-  };
-
-  // Single certificate download
-  const handleDownloadSinglePng = (participantToDownload: Participant = activeParticipant) => {
-    if (!svgCanvasRef.current) return;
-    const safeName = participantToDownload.name.replace(/[^a-zA-Z0-9_-]/g, '_');
-    exportToPng(svgCanvasRef.current, `Certificate_${safeName}.png`);
-  };
-
-  const handleDownloadSinglePdf = (participantToDownload: Participant = activeParticipant) => {
-    if (!svgCanvasRef.current) return;
-    const safeName = participantToDownload.name.replace(/[^a-zA-Z0-9_-]/g, '_');
-    exportToPdf(svgCanvasRef.current, `Certificate_${safeName}.pdf`);
-  };
-
-  // Bulk zip export
-  const handleStartBulkExport = async (format: 'png' | 'pdf') => {
-    const selectedList = participants.filter((p) =>
-      selectedParticipantIds.includes(p.id)
-    );
-    if (selectedList.length === 0) {
-      alert('Please select at least one student from the roster.');
-      return;
-    }
-
-    setBulkProgress({
-      current: 0,
-      total: selectedList.length,
-      isExporting: true,
-      done: false,
-    });
-
-    try {
-      await exportBulkZip(
-        selectedList,
-        async (participant) => {
-          setActiveParticipant(participant);
-          await new Promise((r) => setTimeout(r, 60));
-          return svgCanvasRef.current as SVGSVGElement;
-        },
-        format,
-        (current, total) => {
-          setBulkProgress({ current, total, isExporting: true, done: false });
-        }
-      );
-
-      setBulkProgress((prev) => ({ ...prev, isExporting: false, done: true }));
-    } catch (err) {
-      console.error('Error during bulk export:', err);
-      alert('Failed during bulk export. Please check console.');
-      setBulkProgress((prev) => ({ ...prev, isExporting: false }));
-    }
-  };
-
-  const selectedElement = elements.find((el) => el.id === selectedElementId);
 
   return (
-    <div className="h-screen flex flex-col bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors overflow-hidden">
-      {/* Top Navbar */}
-      <Navbar
-        darkMode={darkMode}
-        setDarkMode={setDarkMode}
-        participantCount={selectedParticipantIds.length}
-        onOpenVerifier={() => setIsVerifierOpen(true)}
-        onOpenMake={() => setIsMakeOpen(true)}
-        onOpenBulkExport={() => setIsBulkExportOpen(true)}
-      />
-
-      {/* Step Ribbon */}
-      <WorkflowSteps
-        templateName={currentTemplate.name}
-        rosterCount={participants.length}
-        activeStudentName={activeParticipant.name}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
-
-      {/* Main Studio Split-View Layout - Screen Fitted */}
-      <main className="flex-1 max-w-[1800px] w-full mx-auto p-3 sm:p-4 md:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 min-h-0 overflow-hidden">
-        {/* Left Column: Inspector / Participants / Templates (5 cols on lg) */}
-        <section className="lg:col-span-5 h-full flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm overflow-hidden">
-          {/* Studio Segmented Tabs Bar (Matches Video Layout) */}
-          <div className="p-2 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 shrink-0">
-            <div className="grid grid-cols-3 bg-slate-200/60 dark:bg-slate-800/80 p-1 rounded-xl text-xs font-semibold gap-1">
-              {/* Tab 1: Inspector */}
-              <button
-                onClick={() => setActiveTab('inspector')}
-                className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg transition cursor-pointer ${
-                  activeTab === 'inspector'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-bold border border-slate-200/60 dark:border-slate-700/60'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Sliders className="w-3.5 h-3.5" />
-                <span>Inspector</span>
-              </button>
-
-              {/* Tab 2: Participants */}
-              <button
-                onClick={() => setActiveTab('participants')}
-                className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg transition cursor-pointer ${
-                  activeTab === 'participants'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-bold border border-slate-200/60 dark:border-slate-700/60'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Users className="w-3.5 h-3.5" />
-                <span>Participants ({participants.length})</span>
-              </button>
-
-              {/* Tab 3: Templates */}
-              <button
-                onClick={() => setActiveTab('templates')}
-                className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg transition cursor-pointer ${
-                  activeTab === 'templates'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-bold border border-slate-200/60 dark:border-slate-700/60'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span>Templates</span>
-              </button>
+    <div className="min-h-screen flex flex-col bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+      {/* Streamlined Clean Header */}
+      <header className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 transition-colors px-4 sm:px-6 py-2.5">
+        <div className="max-w-[1800px] mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950 font-extrabold flex items-center justify-center tracking-tight shadow-md">
+              CC
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+                  CertifyCraft
+                </span>
+                <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  Make Automation Engine
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Tab Content - Perfectly scrollable inside panel to fit screen */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5">
-            {activeTab === 'inspector' && (
-              <InspectorTab
-                elements={elements}
-                selectedElementId={selectedElementId}
-                onSelectElement={setSelectedElementId}
-                onUpdateElement={handleUpdateElement}
-                onDeleteElement={handleDeleteElement}
-                onAddElement={handleAddElement}
-                onResetElements={handleResetElements}
-              />
-            )}
-
-            {activeTab === 'participants' && (
-              <ParticipantsTab
-                participants={participants}
-                setParticipants={setParticipants}
-                selectedParticipantIds={selectedParticipantIds}
-                setSelectedParticipantIds={setSelectedParticipantIds}
-                activeParticipant={activeParticipant}
-                setActiveParticipant={setActiveParticipant}
-                columnMapping={columnMapping}
-                setColumnMapping={setColumnMapping}
-                onDownloadSinglePng={(p) => {
-                  setActiveParticipant(p);
-                  setTimeout(() => handleDownloadSinglePng(p), 50);
-                }}
-                onDownloadSinglePdf={(p) => {
-                  setActiveParticipant(p);
-                  setTimeout(() => handleDownloadSinglePdf(p), 50);
-                }}
-              />
-            )}
-
-            {activeTab === 'templates' && (
-              <TemplatesTab
-                currentTemplate={currentTemplate}
-                onSelectTemplate={handleSelectTemplate}
-                onUploadCustomBg={handleUploadCustomBg}
-              />
-            )}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            >
+              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
           </div>
-        </section>
+        </div>
+      </header>
 
-        {/* Right Column: Interactive Canvas & Production Dock (7 cols on lg) */}
-        <section className="lg:col-span-7 h-full flex flex-col justify-between overflow-y-auto pr-1 space-y-3 sm:space-y-4">
-          {/* Certificate Canvas */}
-          <CertificateCanvas
-            template={currentTemplate}
-            elements={elements}
-            participant={activeParticipant}
-            selectedElementId={selectedElementId}
-            onSelectElement={setSelectedElementId}
-            onUpdateElementPosition={handleUpdateElementPosition}
-            svgRef={svgCanvasRef}
-          />
-
-          {/* Canvas Footer & Export Controls */}
-          <CanvasFooter
+      {/* Main Automation Workspace */}
+      <main className="flex-1 max-w-[1800px] w-full mx-auto p-3 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Left Column: Automation Engine & Upload (5 cols on lg) */}
+        <div className="lg:col-span-5 space-y-4">
+          <AutomationControlPanel
+            participants={participants}
+            setParticipants={setParticipants}
             activeParticipant={activeParticipant}
-            selectedElementName={selectedElement?.label || 'Participant Name'}
-            selectedCount={selectedParticipantIds.length}
-            onDownloadPng={() => handleDownloadSinglePng(activeParticipant)}
-            onDownloadPdf={() => handleDownloadSinglePdf(activeParticipant)}
-            onDownloadBulkZip={() => setIsBulkExportOpen(true)}
+            setActiveParticipant={setActiveParticipant}
+            columnMapping={columnMapping}
+            setColumnMapping={setColumnMapping}
+            renderCurrentSvg={renderCurrentSvg}
           />
-        </section>
+        </div>
+
+        {/* Right Column: Template Picker & Live Certificate Preview (7 cols on lg) */}
+        <div className="lg:col-span-7 space-y-3">
+          {/* Template Bar */}
+          <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400">
+              <Layers className="w-4 h-4" />
+              <span>Certificate Template:</span>
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {PRESET_TEMPLATES.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  onClick={() => handleSelectTemplate(tpl)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    currentTemplate.id === tpl.id
+                      ? 'bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950 shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {tpl.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Interactive Certificate Canvas */}
+          <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+            <div className="flex items-center justify-between text-xs px-1 text-slate-600 dark:text-slate-400">
+              <div>
+                <span>Previewing: </span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {activeParticipant.name}
+                </span>{' '}
+                <span>({activeParticipant.email})</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    if (svgCanvasRef.current) {
+                      exportToPdf(
+                        svgCanvasRef.current,
+                        `Certificate_${activeParticipant.name}.pdf`
+                      );
+                    }
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-red-600 dark:text-red-400 transition cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Download Sample PDF</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (svgCanvasRef.current) {
+                      exportToPng(
+                        svgCanvasRef.current,
+                        `Certificate_${activeParticipant.name}.png`
+                      );
+                    }
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-600 dark:text-cyan-400 transition cursor-pointer"
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span>PNG</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Canvas */}
+            <CertificateCanvas
+              template={currentTemplate}
+              elements={elements}
+              participant={activeParticipant}
+              selectedElementId={selectedElementId}
+              onSelectElement={setSelectedElementId}
+              onUpdateElementPosition={handleUpdateElementPosition}
+              svgRef={svgCanvasRef}
+            />
+          </div>
+        </div>
       </main>
-
-      {/* Modals */}
-      <QRVerifierModal
-        isOpen={isVerifierOpen}
-        onClose={() => setIsVerifierOpen(false)}
-        currentParticipant={activeParticipant}
-        participants={participants}
-      />
-
-      <MakeAutomationModal
-        isOpen={isMakeOpen}
-        onClose={() => setIsMakeOpen(false)}
-        activeParticipant={activeParticipant}
-      />
-
-      <BulkExportModal
-        isOpen={isBulkExportOpen}
-        onClose={() => {
-          setIsBulkExportOpen(false);
-          setBulkProgress({ current: 0, total: 0, isExporting: false, done: false });
-        }}
-        selectedCount={selectedParticipantIds.length}
-        onStartBulkExport={handleStartBulkExport}
-        progress={bulkProgress}
-      />
     </div>
   );
 }
+
 export default App;
