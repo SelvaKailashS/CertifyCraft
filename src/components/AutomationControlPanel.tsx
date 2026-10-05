@@ -11,6 +11,9 @@ import {
   Send,
   Terminal,
   Clock,
+  Copy,
+  Check,
+  Server,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import type { Participant, ColumnMapping } from '../types';
@@ -20,6 +23,7 @@ import {
   dispatchToMakeWebhook,
   generatePdfBase64,
 } from '../utils/automationUtils';
+import { N8N_WORKFLOW_TEMPLATE } from '../utils/n8nWorkflow';
 import { DEMO_PARTICIPANTS } from '../data/mockData';
 
 interface AutomationControlPanelProps {
@@ -41,6 +45,9 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
   setColumnMapping,
   renderCurrentSvg,
 }) => {
+  const [provider, setProvider] = useState<'n8n' | 'make'>('n8n');
+  const [copiedWorkflow, setCopiedWorkflow] = useState(false);
+
   // Webhook and email configuration
   const [config, setConfig] = useState<AutomationConfig>(() => {
     const saved = localStorage.getItem('certifycraft_make_config');
@@ -51,7 +58,10 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
         // ignore
       }
     }
-    return DEFAULT_CONFIG;
+    return {
+      ...DEFAULT_CONFIG,
+      webhookUrl: 'http://localhost:5678/webhook/certifycraft-email',
+    };
   });
 
   const [testEmail, setTestEmail] = useState('');
@@ -75,6 +85,25 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
     const next = { ...config, ...updates };
     setConfig(next);
     localStorage.setItem('certifycraft_make_config', JSON.stringify(next));
+  };
+
+  const handleProviderSwitch = (newProvider: 'n8n' | 'make') => {
+    setProvider(newProvider);
+    if (newProvider === 'n8n') {
+      handleConfigChange({
+        webhookUrl: 'http://localhost:5678/webhook/certifycraft-email',
+      });
+    } else {
+      handleConfigChange({
+        webhookUrl: 'https://hook.eu1.make.com/your-custom-webhook-id',
+      });
+    }
+  };
+
+  const handleCopyN8nWorkflow = () => {
+    navigator.clipboard.writeText(JSON.stringify(N8N_WORKFLOW_TEMPLATE, null, 2));
+    setCopiedWorkflow(true);
+    setTimeout(() => setCopiedWorkflow(false), 2500);
   };
 
   // Handle Excel upload
@@ -131,7 +160,6 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
           if (mapped.length > 0) {
             setActiveParticipant(mapped[0]);
           }
-          // Reset progress
           setCurrentIndex(0);
           setSentCount(0);
           setFailedCount(0);
@@ -149,7 +177,7 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
   // Test webhook with 1 single student
   const handleSendTestWebhook = async () => {
     if (!config.webhookUrl || !config.webhookUrl.startsWith('http')) {
-      alert('Please enter your Make.com Webhook URL first.');
+      alert(`Please enter your ${provider === 'n8n' ? 'n8n' : 'Make.com'} Webhook URL first.`);
       return;
     }
 
@@ -165,7 +193,7 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
       const svg = await renderCurrentSvg(targetRecipient);
       const pdfBase64 = await generatePdfBase64(svg);
 
-      setTestStatus(`Dispatching to Make.com (${targetRecipient.email})...`);
+      setTestStatus(`Dispatching to webhook (${targetRecipient.email})...`);
       const res = await dispatchToMakeWebhook(config.webhookUrl, targetRecipient, pdfBase64, config);
 
       if (res.success) {
@@ -183,7 +211,7 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
   // Start Batch Automation Dispatch for ALL participants
   const handleStartBatchAutomation = async () => {
     if (!config.webhookUrl || !config.webhookUrl.startsWith('http')) {
-      alert('Please enter your Make.com Webhook URL before starting.');
+      alert('Please enter your Webhook URL before starting.');
       return;
     }
     if (participants.length === 0) {
@@ -212,7 +240,6 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
       setCurrentIndex(i + 1);
       setActiveParticipant(p);
 
-      // Add log
       const logId = `${p.id}-${Date.now()}`;
       setLogs((prev) => [
         {
@@ -238,7 +265,7 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
           setLogs((prev) =>
             prev.map((l) =>
               l.id === logId
-                ? { ...l, status: 'success', message: `Sent PDF to ${p.email} (Make HTTP 200)` }
+                ? { ...l, status: 'success', message: `Sent PDF to ${p.email} (HTTP 200)` }
                 : l
             )
           );
@@ -261,7 +288,6 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
         );
       }
 
-      // Throttle delay between student dispatches
       if (config.delayMs > 0 && i < participants.length - 1) {
         await new Promise((r) => setTimeout(r, config.delayMs));
       }
@@ -293,25 +319,60 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* SECTION 1: Make.com Webhook Settings */}
+      {/* Provider Switcher */}
+      <div className="p-1 rounded-xl bg-slate-200/80 dark:bg-slate-800 flex items-center gap-1 text-xs font-bold">
+        <button
+          onClick={() => handleProviderSwitch('n8n')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition cursor-pointer ${
+            provider === 'n8n'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Server className="w-3.5 h-3.5 text-emerald-500" />
+          <span>n8n (Local / 100% Free & Unlimited)</span>
+        </button>
+        <button
+          onClick={() => handleProviderSwitch('make')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition cursor-pointer ${
+            provider === 'make'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+          <span>Make.com</span>
+        </button>
+      </div>
+
+      {/* SECTION 1: Webhook Settings */}
       <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-              <Zap className="w-4 h-4 fill-amber-500" />
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+              {provider === 'n8n' ? <Server className="w-4 h-4 text-emerald-500" /> : <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />}
             </div>
             <div>
               <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                Make.com Automation Webhook
+                {provider === 'n8n' ? 'n8n Webhook (Unlimited Credits)' : 'Make.com Automation Webhook'}
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Receives student details + attached certificate PDF to auto-email students
+                {provider === 'n8n'
+                  ? 'Runs on your local PC via n8n — 0 credit limit, send 6,000+ mails free'
+                  : 'Receives student details + attached certificate PDF'}
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-            Make.com Ready
-          </span>
+          {provider === 'n8n' && (
+            <button
+              onClick={handleCopyN8nWorkflow}
+              title="Copy n8n 1-Click Workflow JSON"
+              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100 transition cursor-pointer"
+            >
+              {copiedWorkflow ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedWorkflow ? 'Copied Workflow!' : 'Copy n8n Workflow'}</span>
+            </button>
+          )}
         </div>
 
         {/* Webhook URL Input */}
@@ -323,7 +384,11 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
             type="url"
             value={config.webhookUrl}
             onChange={(e) => handleConfigChange({ webhookUrl: e.target.value })}
-            placeholder="https://hook.eu1.make.com/your-custom-webhook-id"
+            placeholder={
+              provider === 'n8n'
+                ? 'http://localhost:5678/webhook/certifycraft-email'
+                : 'https://hook.eu1.make.com/your-custom-webhook-id'
+            }
             className="w-full text-xs font-mono px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500"
           />
         </div>
@@ -449,7 +514,7 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
                 Live Automation Dispatcher
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Generates vector PDF & sends to Make.com for every student in the roster
+                Generates vector PDF & sends via {provider === 'n8n' ? 'n8n' : 'Make.com'} for every student
               </p>
             </div>
           </div>
