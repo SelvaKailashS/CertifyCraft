@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-cinzel: 'Cinzel', serif;
+    --font-inter: 'Inter', sans-serif;
+    --font-playfair: 'Playfair Display', serif;
+    --font-montserrat: 'Montserrat', sans-serif;
+    --font-great-vibes: 'Great Vibes', cursive;
+    --font-orbitron: 'Orbitron', monospace;
+  }
+}
+
+.font-cinzel {
+  font-family: 'Cinzel', serif;
+}
+.font-inter {
+  font-family: 'Inter', sans-serif;
+}
+.font-playfair {
+  font-family: 'Playfair Display', serif;
+}
+.font-montserrat {
+  font-family: 'Montserrat', sans-serif;
+}
+.font-greatvibes {
+  font-family: 'Great Vibes', cursive;
+}
+.font-orbitron {
+  font-family: 'Orbitron', monospace;
+}
+.font-signature {
+  font-family: 'Alex Brush', 'Great Vibes', cursive;
+}
+
+/* Custom scrollbar for clean studio feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
