@@ -5,7 +5,7 @@ export const N8N_WORKFLOW_TEMPLATE = {
       parameters: {
         httpMethod: 'POST',
         path: 'certifycraft-email',
-        responseMode: 'onReceived',
+        responseMode: 'lastNode',
         responseData: 'allEntries',
       },
       id: 'webhook-node',

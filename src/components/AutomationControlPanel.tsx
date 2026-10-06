@@ -364,6 +364,15 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
         const svg = await renderCurrentSvg(p);
         const pdfBase64 = await generatePdfBase64(svg);
 
+        // Update status to sending so the user sees it is actively transmitting
+        setLogs((prev) =>
+          prev.map((l) =>
+            l.id === logId
+              ? { ...l, status: 'generating', message: `Sending email to ${p.email}...` }
+              : l
+          )
+        );
+
         const res = await dispatchToWebhook(config.webhookUrl, p, pdfBase64, config);
 
         if (res.success) {
@@ -372,7 +381,7 @@ export const AutomationControlPanel: React.FC<AutomationControlPanelProps> = ({
           setLogs((prev) =>
             prev.map((l) =>
               l.id === logId
-                ? { ...l, status: 'success', message: `Sent PDF to ${p.email} (HTTP 200)` }
+                ? { ...l, status: 'success', message: `Email Sent & Delivered to ${p.email}` }
                 : l
             )
           );

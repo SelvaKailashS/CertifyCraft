@@ -6,12 +6,12 @@ import {
   Image as ImageIcon,
   FileText,
   Palette,
-  Eye,
+  Server,
+  Upload,
 } from 'lucide-react';
 import { AutomationControlPanel } from './components/AutomationControlPanel';
 import { CertificateCanvas } from './components/CertificateCanvas';
 import { InspectorTab } from './components/InspectorTab';
-import { TemplatesTab } from './components/TemplatesTab';
 import { DEMO_PARTICIPANTS } from './data/mockData';
 import { PRESET_TEMPLATES, DEFAULT_HACKATHON_ELEMENTS } from './templates/presets';
 import type { Template, Participant, CanvasElement, ColumnMapping } from './types';
@@ -27,8 +27,8 @@ export function App() {
   );
   const [selectedElementId, setSelectedElementId] = useState<string>('name');
 
-  // Studio Mode: 'canvas' | 'customize'
-  const [studioMode, setStudioMode] = useState<'canvas' | 'customize'>('canvas');
+  // Left sidebar active tab: 'customize' | 'automation'
+  const [leftTab, setLeftTab] = useState<'customize' | 'automation'>('customize');
 
   // Participants roster
   const [participants, setParticipants] = useState<Participant[]>(DEMO_PARTICIPANTS);
@@ -46,6 +46,7 @@ export function App() {
   });
 
   const svgCanvasRef = useRef<SVGSVGElement | null>(null);
+  const customBgInputRef = useRef<HTMLInputElement>(null);
 
   // Sync dark mode class
   useEffect(() => {
@@ -105,19 +106,30 @@ export function App() {
   };
 
   // Upload custom background
-  const handleUploadCustomBg = (dataUrl: string) => {
-    const customTpl: Template = {
-      id: `custom-${Date.now()}`,
-      name: 'Custom Branded Certificate',
-      category: 'CUSTOM',
-      description: 'Custom background template',
-      themeColor: '#0f172a',
-      accentColor: '#f59e0b',
-      bgType: 'custom-image',
-      bgImageUrl: dataUrl,
-      elements: elements,
+  const handleUploadCustomBg = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target?.result as string;
+      if (dataUrl) {
+        const customTpl: Template = {
+          id: `custom-${Date.now()}`,
+          name: 'Custom Branded Certificate',
+          category: 'CUSTOM',
+          description: 'Custom background template',
+          themeColor: '#0f172a',
+          accentColor: '#f59e0b',
+          bgType: 'custom-image',
+          bgImageUrl: dataUrl,
+          elements: elements,
+        };
+        setCurrentTemplate(customTpl);
+      }
     };
-    setCurrentTemplate(customTpl);
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   // Render SVG helper for automation
@@ -131,7 +143,7 @@ export function App() {
     <div className="min-h-screen flex flex-col bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
       {/* Streamlined Clean Header */}
       <header className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 transition-colors px-4 sm:px-6 py-2.5">
-        <div className="max-w-[1800px] mx-auto flex items-center justify-between">
+        <div className="max-w-[1850px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-slate-900 dark:bg-emerald-500 text-white dark:text-slate-950 font-extrabold flex items-center justify-center tracking-tight shadow-md">
               CC
@@ -160,48 +172,120 @@ export function App() {
         </div>
       </header>
 
-      {/* Main Automation Workspace */}
-      <main className="flex-1 max-w-[1800px] w-full mx-auto p-3 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Left Column: Automation Engine & Upload (5 cols on lg) */}
+      {/* Main Studio: LEFT = Controls/Customize/Automation, RIGHT = Live Canvas */}
+      <main className="flex-1 max-w-[1850px] w-full mx-auto p-3 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* LEFT COLUMN: Customize Template & Text OR Automation Dispatcher */}
         <div className="lg:col-span-5 space-y-4">
-          <AutomationControlPanel
-            participants={participants}
-            setParticipants={setParticipants}
-            activeParticipant={activeParticipant}
-            setActiveParticipant={setActiveParticipant}
-            columnMapping={columnMapping}
-            setColumnMapping={setColumnMapping}
-            renderCurrentSvg={renderCurrentSvg}
-          />
+          {/* Main Left Tab Switcher */}
+          <div className="p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex items-center gap-1.5 text-xs font-bold">
+            <button
+              onClick={() => setLeftTab('customize')}
+              className={`flex-1 py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 ${
+                leftTab === 'customize'
+                  ? 'bg-slate-900 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Palette className="w-4 h-4" />
+              <span>🎨 Customize Template & Text</span>
+            </button>
+            <button
+              onClick={() => setLeftTab('automation')}
+              className={`flex-1 py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 ${
+                leftTab === 'automation'
+                  ? 'bg-slate-900 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Server className="w-4 h-4 text-emerald-400" />
+              <span>🚀 Bulk Email Automation</span>
+            </button>
+          </div>
+
+          {/* TAB 1: CUSTOMIZE TEMPLATE & TEXT (ON THE LEFT) */}
+          {leftTab === 'customize' && (
+            <div className="space-y-4">
+              {/* Preset Design & Custom Upload Card */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <Layers className="w-4 h-4 text-emerald-500" />
+                    <span>Choose Template Design:</span>
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      ref={customBgInputRef}
+                      onChange={handleUploadCustomBg}
+                      accept="image/*,.svg"
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => customBgInputRef.current?.click()}
+                      className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Upload Custom BG</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {PRESET_TEMPLATES.map((tpl) => (
+                    <button
+                      key={tpl.id}
+                      onClick={() => handleSelectTemplate(tpl)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                        currentTemplate.id === tpl.id
+                          ? 'bg-slate-900 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-xs'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {tpl.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Elements & Text Inspector Card */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+                <InspectorTab
+                  elements={elements}
+                  selectedElementId={selectedElementId}
+                  onSelectElement={setSelectedElementId}
+                  onUpdateElement={handleUpdateElement}
+                  onDeleteElement={handleDeleteElement}
+                  onAddElement={handleAddElement}
+                  onResetElements={handleResetElements}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: AUTOMATION & SPREADSHEET DISPATCHER */}
+          {leftTab === 'automation' && (
+            <AutomationControlPanel
+              participants={participants}
+              setParticipants={setParticipants}
+              activeParticipant={activeParticipant}
+              setActiveParticipant={setActiveParticipant}
+              columnMapping={columnMapping}
+              setColumnMapping={setColumnMapping}
+              renderCurrentSvg={renderCurrentSvg}
+            />
+          )}
         </div>
 
-        {/* Right Column: Template Customization & Live Certificate Preview (7 cols on lg) */}
+        {/* RIGHT COLUMN: LIVE CERTIFICATE PREVIEW CANVAS */}
         <div className="lg:col-span-7 space-y-3">
-          {/* Studio Navigation & Export Bar */}
-          <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold">
-              <button
-                onClick={() => setStudioMode('canvas')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                  studioMode === 'canvas'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                }`}
-              >
-                <Eye className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Canvas View</span>
-              </button>
-              <button
-                onClick={() => setStudioMode('customize')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                  studioMode === 'customize'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                }`}
-              >
-                <Palette className="w-3.5 h-3.5 text-amber-500" />
-                <span>Customize Template & Text</span>
-              </button>
+          {/* Top Canvas Bar */}
+          <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span className="text-xs text-slate-500 dark:text-slate-400">Live Preview: </span>
+              <span className="text-xs font-bold text-slate-900 dark:text-white">
+                {activeParticipant.name}
+              </span>{' '}
+              <span className="text-xs text-slate-400">({activeParticipant.college})</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -214,10 +298,10 @@ export function App() {
                     );
                   }
                 }}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-red-600 dark:text-red-400 transition cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-red-600 dark:text-red-400 transition cursor-pointer"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>Sample PDF</span>
+                <span>Download Sample PDF</span>
               </button>
               <button
                 onClick={() => {
@@ -228,7 +312,7 @@ export function App() {
                     );
                   }
                 }}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-600 dark:text-cyan-400 transition cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-600 dark:text-cyan-400 transition cursor-pointer"
               >
                 <ImageIcon className="w-3.5 h-3.5" />
                 <span>PNG</span>
@@ -236,69 +320,11 @@ export function App() {
             </div>
           </div>
 
-          {/* Template Bar (Visible in Canvas View) */}
-          {studioMode === 'canvas' && (
-            <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400">
-                <Layers className="w-4 h-4 text-emerald-500" />
-                <span>Preset Design:</span>
-              </div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {PRESET_TEMPLATES.map((tpl) => (
-                  <button
-                    key={tpl.id}
-                    onClick={() => handleSelectTemplate(tpl)}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
-                      currentTemplate.id === tpl.id
-                        ? 'bg-slate-900 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {tpl.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Customization Drawer / Inspector (Visible in Customize Mode) */}
-          {studioMode === 'customize' && (
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
-              {/* Template background & custom upload */}
-              <TemplatesTab
-                currentTemplate={currentTemplate}
-                onSelectTemplate={handleSelectTemplate}
-                onUploadCustomBg={handleUploadCustomBg}
-              />
-
-              <hr className="border-slate-200 dark:border-slate-800" />
-
-              {/* Elements Inspector */}
-              <InspectorTab
-                elements={elements}
-                selectedElementId={selectedElementId}
-                onSelectElement={setSelectedElementId}
-                onUpdateElement={handleUpdateElement}
-                onDeleteElement={handleDeleteElement}
-                onAddElement={handleAddElement}
-                onResetElements={handleResetElements}
-              />
-            </div>
-          )}
-
           {/* Interactive Certificate Canvas */}
-          <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
-            <div className="flex items-center justify-between text-xs px-1 text-slate-600 dark:text-slate-400">
-              <div>
-                <span>Previewing: </span>
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {activeParticipant.name}
-                </span>{' '}
-                <span>({activeParticipant.email})</span>
-              </div>
-              <span className="text-[11px] text-slate-400 hidden sm:inline">
-                Drag any text directly on canvas to reposition
-              </span>
+          <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+            <div className="text-[11px] text-slate-400 px-1 flex items-center justify-between">
+              <span>💡 Tip: Click any text on the canvas to edit its font, size, or color on the left.</span>
+              <span className="hidden sm:inline">Drag directly to reposition</span>
             </div>
 
             {/* Canvas */}
@@ -307,7 +333,10 @@ export function App() {
               elements={elements}
               participant={activeParticipant}
               selectedElementId={selectedElementId}
-              onSelectElement={setSelectedElementId}
+              onSelectElement={(id) => {
+                setSelectedElementId(id);
+                setLeftTab('customize');
+              }}
               onUpdateElementPosition={handleUpdateElementPosition}
               svgRef={svgCanvasRef}
             />
