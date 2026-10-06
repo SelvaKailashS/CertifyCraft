@@ -18,7 +18,10 @@ import type { Template, Participant, CanvasElement, ColumnMapping } from './type
 import { exportToPdf, exportToPng } from './utils/exportUtils';
 
 export function App() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('certifycraft-theme');
+    return saved === 'dark';
+  });
 
   // Active template & elements
   const [currentTemplate, setCurrentTemplate] = useState<Template>(PRESET_TEMPLATES[0]);
@@ -48,12 +51,14 @@ export function App() {
   const svgCanvasRef = useRef<SVGSVGElement | null>(null);
   const customBgInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync dark mode class
+  // Sync dark mode class and persist
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('certifycraft-theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('certifycraft-theme', 'light');
     }
   }, [darkMode]);
 
@@ -163,10 +168,20 @@ export function App() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setDarkMode(!darkMode)}
-              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className="p-1.5 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              title={darkMode ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs text-xs font-semibold transition cursor-pointer"
             >
-              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {darkMode ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Light Theme</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Dark Theme</span>
+                </>
+              )}
             </button>
           </div>
         </div>

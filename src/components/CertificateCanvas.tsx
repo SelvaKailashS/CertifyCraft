@@ -182,9 +182,9 @@ export const CertificateCanvas: React.FC<CertificateCanvasProps> = ({
       </div>
 
       {/* Canvas Frame Container */}
-      <div className="relative flex-1 min-h-0 w-full rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 bg-slate-950 flex items-center justify-center p-2 sm:p-3 select-none">
+      <div className="relative flex-1 min-h-0 w-full rounded-2xl overflow-hidden shadow-2xl border border-slate-300 dark:border-slate-800 bg-slate-200/80 dark:bg-slate-950 flex items-center justify-center p-2 sm:p-3 select-none">
         <div style={getZoomStyle()} className="transition-all duration-200 w-full max-h-full flex items-center justify-center">
-          <div className="relative aspect-[16/9] w-full max-h-full max-w-full rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
+          <div className="relative aspect-[16/9] w-full max-h-full max-w-full rounded-xl overflow-hidden shadow-xl flex items-center justify-center">
             <svg
               ref={svgRef}
               viewBox="0 0 1920 1080"
