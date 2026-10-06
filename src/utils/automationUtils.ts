@@ -103,23 +103,19 @@ export const dispatchToMakeWebhook = async (
     });
 
     if (!response.ok) {
-      return { success: false, statusText: `HTTP ${response.status} ${response.statusText}` };
+      const text = await response.text().catch(() => '');
+      let msg = `HTTP ${response.status} ${response.statusText}`;
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed.message) msg = `${parsed.message} ${parsed.hint || ''}`;
+      } catch {}
+      return { success: false, statusText: msg.trim() };
     }
     return { success: true, statusText: 'Delivered (HTTP 200)' };
   } catch (err: any) {
-    // If browser CORS triggers on some webhook domains, try mode: 'no-cors' fallback
-    try {
-      await fetch(webhookUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-      return { success: true, statusText: 'Delivered (no-cors)' };
-    } catch (fallbackErr: any) {
-      return { success: false, statusText: err.message || 'Network error' };
-    }
+    return { 
+      success: false, 
+      statusText: err.message || 'Network error: could not connect to webhook URL' 
+    };
   }
 };
