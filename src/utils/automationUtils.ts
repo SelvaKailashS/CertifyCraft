@@ -20,7 +20,7 @@ export interface AutomationConfig {
 }
 
 export const DEFAULT_CONFIG: AutomationConfig = {
-  webhookUrl: 'https://hook.eu1.make.com/your-custom-webhook-id',
+  webhookUrl: 'http://localhost:5678/webhook/certifycraft-email',
   emailSubject: 'Your Official Certificate of Participation - {eventTitle}',
   emailBodyTemplate:
     'Hi {name},\n\nCongratulations on participating in {eventTitle} representing {college}!\n\nPlease find your official verified certificate (Certificate ID: {certificateId}) attached as a PDF.\n\nBest regards,\nOrganizing Committee',
@@ -50,16 +50,16 @@ export const generatePdfBase64 = async (
 };
 
 /**
- * Dispatches student payload to Make.com webhook
+ * Dispatches student payload to n8n webhook
  */
-export const dispatchToMakeWebhook = async (
+export const dispatchToWebhook = async (
   webhookUrl: string,
   participant: Participant,
   pdfBase64: string,
   config: AutomationConfig
 ): Promise<{ success: boolean; statusText?: string }> => {
   if (!webhookUrl || !webhookUrl.startsWith('http')) {
-    throw new Error('Please enter a valid Make.com webhook URL');
+    throw new Error('Please enter a valid n8n Webhook URL');
   }
 
   const subject = config.emailSubject
@@ -119,3 +119,5 @@ export const dispatchToMakeWebhook = async (
     };
   }
 };
+
+export const dispatchToMakeWebhook = dispatchToWebhook;
