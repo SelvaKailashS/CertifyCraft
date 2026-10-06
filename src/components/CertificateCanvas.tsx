@@ -116,9 +116,9 @@ export const CertificateCanvas: React.FC<CertificateCanvasProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full space-y-3">
+    <div className="flex flex-col flex-1 h-full min-h-0 space-y-2 select-none">
       {/* Canvas Top Toolbar (Matches Video Header: 1920 x 1080 px | Drag any text... | Grid | Fit | 75% | 100%) */}
-      <div className="flex items-center justify-between text-xs font-medium px-2 flex-wrap gap-2">
+      <div className="flex items-center justify-between text-xs font-medium px-2 flex-wrap gap-2 flex-shrink-0">
         <div className="flex items-center gap-3">
           <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300 font-mono font-bold text-xs border border-slate-200 dark:border-slate-700">
             1920 × 1080 px
@@ -179,9 +179,9 @@ export const CertificateCanvas: React.FC<CertificateCanvasProps> = ({
       </div>
 
       {/* Canvas Frame Container */}
-      <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 bg-slate-950 flex items-center justify-center p-2 sm:p-4 select-none">
-        <div style={getZoomStyle()} className="transition-all duration-200 w-full">
-          <div className="relative aspect-[16/9] w-full rounded-xl overflow-hidden shadow-inner">
+      <div className="relative flex-1 min-h-0 w-full rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 bg-slate-950 flex items-center justify-center p-2 sm:p-3 select-none">
+        <div style={getZoomStyle()} className="transition-all duration-200 w-full max-h-full flex items-center justify-center">
+          <div className="relative aspect-[16/9] w-full max-h-full max-w-full rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
             <svg
               ref={svgRef}
               viewBox="0 0 1920 1080"

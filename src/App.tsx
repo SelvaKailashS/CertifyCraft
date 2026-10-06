@@ -140,20 +140,20 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="h-screen max-h-screen flex flex-col bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors overflow-hidden">
       {/* Streamlined Clean Header */}
-      <header className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 transition-colors px-4 sm:px-6 py-2.5">
-        <div className="max-w-[1850px] mx-auto flex items-center justify-between">
+      <header className="flex-shrink-0 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-30 px-4 sm:px-6 py-2">
+        <div className="max-w-[1920px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-slate-900 dark:bg-emerald-500 text-white dark:text-slate-950 font-extrabold flex items-center justify-center tracking-tight shadow-md">
+            <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-emerald-500 text-white dark:text-slate-950 font-extrabold flex items-center justify-center tracking-tight shadow-md">
               CC
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+                <span className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white">
                   CertifyCraft
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   n8n Automation Engine
                 </span>
               </div>
@@ -164,7 +164,7 @@ export function App() {
             <button
               onClick={() => setDarkMode(!darkMode)}
               title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              className="p-1.5 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             >
               {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
@@ -172,32 +172,32 @@ export function App() {
         </div>
       </header>
 
-      {/* Main Studio: LEFT = Controls/Customize/Automation, RIGHT = Live Canvas */}
-      <main className="flex-1 max-w-[1850px] w-full mx-auto p-3 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* LEFT COLUMN: Customize Template & Text OR Automation Dispatcher */}
-        <div className="lg:col-span-5 space-y-4">
+      {/* Main Studio: LEFT = Scrollable Controls/Customize/Automation, RIGHT = Fixed Live Canvas */}
+      <main className="flex-1 max-w-[1920px] w-full mx-auto p-2.5 sm:p-3.5 grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch overflow-hidden min-h-0">
+        {/* LEFT COLUMN: Scrollable Panel for Controls */}
+        <div className="lg:col-span-5 h-full overflow-y-auto pr-1.5 space-y-3 custom-scrollbar min-h-0">
           {/* Main Left Tab Switcher */}
-          <div className="p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex items-center gap-1.5 text-xs font-bold">
+          <div className="p-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex items-center gap-1 text-xs font-bold sticky top-0 z-20">
             <button
               onClick={() => setLeftTab('customize')}
-              className={`flex-1 py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
                 leftTab === 'customize'
                   ? 'bg-slate-900 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <Palette className="w-4 h-4" />
+              <Palette className="w-3.5 h-3.5" />
               <span>🎨 Customize Template & Text</span>
             </button>
             <button
               onClick={() => setLeftTab('automation')}
-              className={`flex-1 py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
                 leftTab === 'automation'
                   ? 'bg-slate-900 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <Server className="w-4 h-4 text-emerald-400" />
+              <Server className="w-3.5 h-3.5 text-emerald-400" />
               <span>🚀 Bulk Email Automation</span>
             </button>
           </div>
@@ -276,10 +276,10 @@ export function App() {
           )}
         </div>
 
-        {/* RIGHT COLUMN: LIVE CERTIFICATE PREVIEW CANVAS */}
-        <div className="lg:col-span-7 space-y-3">
+        {/* RIGHT COLUMN: LIVE CERTIFICATE PREVIEW CANVAS (FITS SCREEN) */}
+        <div className="lg:col-span-7 h-full flex flex-col space-y-2 overflow-hidden min-h-0">
           {/* Top Canvas Bar */}
-          <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-2">
+          <div className="flex-shrink-0 p-2 sm:p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="text-xs text-slate-500 dark:text-slate-400">Live Preview: </span>
               <span className="text-xs font-bold text-slate-900 dark:text-white">
@@ -298,10 +298,10 @@ export function App() {
                     );
                   }
                 }}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-red-600 dark:text-red-400 transition cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-red-600 dark:text-red-400 transition cursor-pointer"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>Download Sample PDF</span>
+                <span>Sample PDF</span>
               </button>
               <button
                 onClick={() => {
@@ -312,7 +312,7 @@ export function App() {
                     );
                   }
                 }}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-600 dark:text-cyan-400 transition cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-600 dark:text-cyan-400 transition cursor-pointer"
               >
                 <ImageIcon className="w-3.5 h-3.5" />
                 <span>PNG</span>
@@ -320,26 +320,28 @@ export function App() {
             </div>
           </div>
 
-          {/* Interactive Certificate Canvas */}
-          <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-            <div className="text-[11px] text-slate-400 px-1 flex items-center justify-between">
+          {/* Interactive Certificate Canvas Card */}
+          <div className="flex-1 min-h-0 flex flex-col p-2 sm:p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+            <div className="flex-shrink-0 text-[11px] text-slate-400 pb-1 px-1 flex items-center justify-between">
               <span>💡 Tip: Click any text on the canvas to edit its font, size, or color on the left.</span>
               <span className="hidden sm:inline">Drag directly to reposition</span>
             </div>
 
             {/* Canvas */}
-            <CertificateCanvas
-              template={currentTemplate}
-              elements={elements}
-              participant={activeParticipant}
-              selectedElementId={selectedElementId}
-              onSelectElement={(id) => {
-                setSelectedElementId(id);
-                setLeftTab('customize');
-              }}
-              onUpdateElementPosition={handleUpdateElementPosition}
-              svgRef={svgCanvasRef}
-            />
+            <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
+              <CertificateCanvas
+                template={currentTemplate}
+                elements={elements}
+                participant={activeParticipant}
+                selectedElementId={selectedElementId}
+                onSelectElement={(id) => {
+                  setSelectedElementId(id);
+                  setLeftTab('customize');
+                }}
+                onUpdateElementPosition={handleUpdateElementPosition}
+                svgRef={svgCanvasRef}
+              />
+            </div>
           </div>
         </div>
       </main>
