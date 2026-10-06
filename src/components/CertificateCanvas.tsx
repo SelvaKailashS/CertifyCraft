@@ -85,6 +85,9 @@ export const CertificateCanvas: React.FC<CertificateCanvasProps> = ({
 
   // Resolve dynamic values
   const resolveValue = (el: CanvasElement): string => {
+    if (el.staticValue !== undefined && el.staticValue !== '') {
+      return el.staticValue;
+    }
     switch (el.dataSource) {
       case 'name':
         return participant.name;
@@ -323,7 +326,7 @@ export const CertificateCanvas: React.FC<CertificateCanvasProps> = ({
                           fontSize="36"
                           opacity="0.9"
                         >
-                          {el.id === 'sig1' ? 'Dr. Sarah Mitchell' : 'Prof. Rajesh Khanna'}
+                          {el.signatoryName || (el.id === 'sig1' ? 'Dr. Sarah Mitchell' : 'Prof. Rajesh Khanna')}
                         </text>
                         {/* Label */}
                         <text
@@ -335,7 +338,7 @@ export const CertificateCanvas: React.FC<CertificateCanvasProps> = ({
                           fontSize={el.fontSize}
                           letterSpacing="1.5"
                         >
-                          {displayValue}
+                          {el.signatoryTitle || displayValue}
                         </text>
 
                         {/* Selection outline */}

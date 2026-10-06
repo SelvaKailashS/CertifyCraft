@@ -248,7 +248,7 @@ export function App() {
               </div>
 
               {/* Elements & Text Inspector Card */}
-              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+              <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
                 <InspectorTab
                   elements={elements}
                   selectedElementId={selectedElementId}
@@ -257,6 +257,10 @@ export function App() {
                   onDeleteElement={handleDeleteElement}
                   onAddElement={handleAddElement}
                   onResetElements={handleResetElements}
+                  participant={activeParticipant}
+                  onUpdateParticipant={(updates) =>
+                    setActiveParticipant((prev) => ({ ...prev, ...updates }))
+                  }
                 />
               </div>
             </div>

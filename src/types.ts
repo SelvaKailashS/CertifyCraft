@@ -26,6 +26,9 @@ export interface CanvasElement {
   color: string;
   visible: boolean;
   staticValue?: string;
+  signatoryName?: string;
+  signatoryTitle?: string;
+  qrUrl?: string;
 }
 
 export interface Template {
